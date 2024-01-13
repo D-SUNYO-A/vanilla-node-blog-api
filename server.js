@@ -7,7 +7,10 @@ import { responseUtil } from "./utils/responseUtil.js";
 import mongoose from "mongoose";
 
 const corsOptions = {
-    origin: "http://127.0.0.1:5500",
+    origin: (origin, callback) => {
+        // Permettre l'accès depuis n'importe quelle origine
+        callback(null, true);
+    },
     methods: "GET",
 };
 

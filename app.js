@@ -3,11 +3,8 @@ import cluster from "cluster";
 import os from 'os';
 import cors from "cors";
 import mongoose from "mongoose";
-import * as fs from 'fs';
 import { postController } from "./controllers/postController.js";
 import { responseUtil } from "./utils/responseUtil.js";
-import { upload } from "./middleware/upload.js";
-import { getFilePath } from "./utils/pathUtil.js";
 
 // Permettre l'accès depuis n'importe quelle origine
 const corsOptions = {
@@ -38,25 +35,9 @@ if (cluster.isPrimary) {
     const app = http.createServer((req, res) => {
         cors(corsOptions)(req, res, async () => {
             if (req.url.startsWith('/uploads/')) {
-                const filePath = getFilePath(req.url, import.meta.url);
-                fs.readFile(filePath, (err, data) => {
-                    if (err) {
-                        console.error(err);
-                        responseUtil.sendResponse(res, 500, 'Internal Server Error');
-                    } else {
-                        res.writeHead(200, { 'Content-Type': 'image/jpeg' });
-                        res.end(data);
-                    }
-                });
+                postController.getUploadsPost(req, res, import.meta.url);
             } else if(req.url === '/api/posts' && req.method === 'POST') {
-                upload(req, res, (err) => {
-                    if (err) {
-                        console.error(err);
-                        responseUtil.sendResponse(res, 500, 'Internal Server Error');
-                    } else {
-                        postController.createPost(req, res);
-                    }
-                });
+                postController.createPost(req, res);
             } else if(req.url === '/api/posts' && req.method === 'GET') {
                 postController.getPosts(req, res);  
             } else if(req.url.match(/\/api\/post\/([0-9]+)/) && req.method === 'GET') {

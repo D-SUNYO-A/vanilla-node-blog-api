@@ -14,6 +14,9 @@ const postSchema = new Schema(
     },
     images: {
       type: [String],
+    },
+    videos: {
+      type: [String],
     }
   },
   {

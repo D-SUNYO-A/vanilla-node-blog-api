@@ -1,6 +1,9 @@
 import { Post } from "../models/postModel.js";
-import { getDataUtil } from "../utils/getDataUtil.js";
+import { uploadMiddleware } from "../middleware/upload.js";
 import { responseUtil } from "../utils/responseUtil.js";
+import { getDataUtil } from "../utils/getDataUtil.js";
+import { getFilePath } from "../utils/pathUtil.js";
+import * as fs from 'fs';
 
 export const postController = new (class {
   // @desc  Gets All Posts
@@ -33,27 +36,46 @@ export const postController = new (class {
   // @desc  Create a Post
   // @route POST /api/posts
   createPost = async (req, res) => {
-    try {
-      const { title, description } = req.body;
+    uploadMiddleware.upload(req, res, (err) => {
+      if (err) {
+        console.error(err);
+        responseUtil.sendResponse(res, 500, 'Internal Server Error');
+      } else {
+        const create = async () => {
+          try {
+            const { title, description } = req.body;
 
-      let images = [];
+            let images = [];
+            let videos = [];
 
-      if (req.files && req.files.length > 0) {
-        images = req.files.map((file) => file.path);
+            if (req.files) {
+              // Utilisez req.files['images'] pour obtenir la liste des fichiers images
+              if (req.files['images']) {
+                  images = req.files['images'].map((file) => file.path);
+              }
+
+              // Utilisez req.files['videos'] pour obtenir la liste des fichiers videos
+              if (req.files['videos']) {
+                  videos = req.files['videos'].map((file) => file.path);
+              }
+            }
+
+            const newPost = await Post.create({
+              title,
+              description,
+              images,
+              videos,
+            });
+
+            responseUtil.sendResponse(res, 201, newPost);
+          } catch (error) {
+            console.error(error);
+            responseUtil.sendResponse(res, 500, "Internal Server Error");
+          }
+        }
+        create();
       }
-
-      const newPost = await Post.create({
-        title,
-        description,
-        images,
-      });
-
-      responseUtil.sendResponse(res, 201, newPost);
-      
-    } catch (error) {
-      console.error(error);
-      responseUtil.sendResponse(res, 500, "Internal Server Error");
-    }
+    });
   };
 
   // @desc  Update a Post
@@ -100,5 +122,20 @@ export const postController = new (class {
     } catch (error) {
       console.error(error);
     }
+  };
+
+  // @desc  Gets Uploads Post
+  // @route /uploads/
+  getUploadsPost = (req, res, importMetaUrl) => {
+    const filePath = getFilePath(req.url, importMetaUrl);
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        console.error(err);
+        responseUtil.sendResponse(res, 500, "Internal Server Error");
+      } else {
+        res.writeHead(200, { "Content-Type": "image/jpeg" });
+        res.end(data);
+      }
+    });
   };
 })();

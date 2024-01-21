@@ -1,4 +1,4 @@
-import { Post } from "../models/postModel.js"; 
+import { Post } from "../models/postModel.js";
 import { getDataUtil } from "../utils/getDataUtil.js";
 import { responseUtil } from "../utils/responseUtil.js";
 
@@ -20,38 +20,41 @@ export const postController = new (class {
     try {
       const post = await Post.findById(id);
 
-      if(!post) {
+      if (!post) {
         responseUtil.sendResponse(res, 404, "Post Not Found");
       } else {
         responseUtil.sendResponse(res, 200, post);
       }
-
     } catch (error) {
       console.error(error);
     }
-  }
+  };
 
   // @desc  Create a Post
   // @route POST /api/posts
   createPost = async (req, res) => {
     try {
-      const body = await getDataUtil.post(req);
+      const { title, description } = req.body;
 
-      const { title, description } = JSON.parse(body);
+      let images = [];
 
-      const post = {
-        title, 
-        description
+      if (req.files && req.files.length > 0) {
+        images = req.files.map((file) => file.path);
       }
 
-      const newPost = await Post.create(post);
-      
-      responseUtil.sendResponse(res, 201, newPost);
+      const newPost = await Post.create({
+        title,
+        description,
+        images,
+      });
 
+      responseUtil.sendResponse(res, 201, newPost);
+      
     } catch (error) {
       console.error(error);
+      responseUtil.sendResponse(res, 500, "Internal Server Error");
     }
-  }
+  };
 
   // @desc  Update a Post
   // @route PUT /api/post/:id
@@ -59,7 +62,7 @@ export const postController = new (class {
     try {
       const post = await Post.findById(id);
 
-      if(!post) {
+      if (!post) {
         responseUtil.sendResponse(res, 404, "Post Not Found");
       } else {
         const body = await getDataUtil.post(req);
@@ -70,18 +73,17 @@ export const postController = new (class {
           title: title || post.title,
           description: description || post.description,
         };
-        
+
         Object.assign(post, updateFields);
-        
+
         const updPost = await post.save();
-        
+
         responseUtil.sendResponse(res, 200, updPost);
       }
-
     } catch (error) {
       console.error(error);
     }
-  }
+  };
 
   // @desc  Delete a Post
   // @route DELETE /api/post/:id
@@ -89,15 +91,14 @@ export const postController = new (class {
     try {
       const post = await Post.findById(id);
 
-      if(!post) {
+      if (!post) {
         responseUtil.sendResponse(res, 404, "Post Not Found");
       } else {
         await post.deleteOne();
         responseUtil.sendResponse(res, 200, `Post ${id} removed`);
       }
-
     } catch (error) {
       console.error(error);
     }
-  }
+  };
 })();
